@@ -845,7 +845,7 @@ def build_packages_from_lockfile(package_data):
                         requirement=dep_req,
                         is_runtime=False,
                         is_optional=True,
-                        is_resolved=True,
+                        is_resolved=False,
                     )
                 )
             else:
