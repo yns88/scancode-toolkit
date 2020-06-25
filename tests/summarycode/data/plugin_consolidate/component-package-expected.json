@@ -90,7 +90,7 @@
       "repository_homepage_url": "https://www.npmjs.com/package/test-package",
       "repository_download_url": "https://registry.npmjs.org/test-package/-/test-package-0.0.1.tgz",
       "api_data_url": "https://registry.npmjs.org/test-package/0.0.1",
-      "identifier": "pkg_npm_test_package_0_0_1_1",
+      "identifier": "pkg_npm_test_package_0_0_1",
       "consolidated_license_expression": "apache-2.0 AND gpl-1.0-plus AND unknown",
       "consolidated_holders": [
         "IBM Corp.",
@@ -514,7 +514,7 @@
       "authors": [],
       "packages": [],
       "consolidated_to": [
-        "pkg_npm_test_package_0_0_1_1"
+        "pkg_npm_test_package_0_0_1"
       ],
       "files_count": 3,
       "dirs_count": 0,
@@ -631,7 +631,7 @@
         }
       ],
       "consolidated_to": [
-        "pkg_npm_test_package_0_0_1_1"
+        "pkg_npm_test_package_0_0_1"
       ],
       "files_count": 0,
       "dirs_count": 0,
@@ -710,7 +710,7 @@
       "authors": [],
       "packages": [],
       "consolidated_to": [
-        "pkg_npm_test_package_0_0_1_1"
+        "pkg_npm_test_package_0_0_1"
       ],
       "files_count": 0,
       "dirs_count": 0,
@@ -822,7 +822,7 @@
       "authors": [],
       "packages": [],
       "consolidated_to": [
-        "pkg_npm_test_package_0_0_1_1"
+        "pkg_npm_test_package_0_0_1"
       ],
       "files_count": 0,
       "dirs_count": 0,

@@ -205,7 +205,10 @@ class Consolidator(PostScanPlugin):
                 # We use the purl as the identifier for ConsolidatedPackages
                 purl = c.package.purl
                 identifier_counts[purl] += 1
-                identifier = python_safe_name('{}_{}'.format(purl, identifier_counts[purl]))
+                if identifier_counts[purl] > 1:
+                    identifier = python_safe_name('{}_{}'.format(purl, identifier_counts[purl]))
+                else:
+                    identifier = python_safe_name(purl)
                 c.consolidation.identifier = identifier
                 for resource in c.consolidation.resources:
                     resource.consolidated_to.append(identifier)
