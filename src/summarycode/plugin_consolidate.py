@@ -40,6 +40,7 @@ from license_expression import Licensing
 from packagedcode import get_package_instance
 from packagedcode.build import BaseBuildManifestPackage
 from packagedcode.utils import combine_expressions
+from packageurl import PackageURL
 from plugincode.post_scan import PostScanPlugin
 from plugincode.post_scan import post_scan_impl
 from scancode import CommandLineOption
@@ -204,11 +205,14 @@ class Consolidator(PostScanPlugin):
             if isinstance(c, ConsolidatedPackage):
                 # We use the purl as the identifier for ConsolidatedPackages
                 purl = c.package.purl
+                package_url = PackageURL.from_string(purl)
                 identifier_counts[purl] += 1
+                name = package_url.name
+                version = package_url.version
                 if identifier_counts[purl] > 1:
-                    identifier = python_safe_name('{}_{}'.format(purl, identifier_counts[purl]))
+                    identifier = python_safe_name('{}_{}_{}'.format(name, version, identifier_counts[purl]))
                 else:
-                    identifier = python_safe_name(purl)
+                    identifier = python_safe_name('{}_{}'.format(name, version))
                 c.consolidation.identifier = identifier
                 for resource in c.consolidation.resources:
                     resource.consolidated_to.append(identifier)
