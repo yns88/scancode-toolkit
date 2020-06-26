@@ -205,14 +205,23 @@ class Consolidator(PostScanPlugin):
             if isinstance(c, ConsolidatedPackage):
                 # We use the purl as the identifier for ConsolidatedPackages
                 purl = c.package.purl
-                package_url = PackageURL.from_string(purl)
-                identifier_counts[purl] += 1
-                name = package_url.name
-                version = package_url.version
-                if identifier_counts[purl] > 1:
-                    identifier = python_safe_name('{}_{}_{}'.format(name, version, identifier_counts[purl]))
+                if purl:
+                    identifier_counts[purl] += 1
+                    package_url = PackageURL.from_string(purl)
+                    name = package_url.name
+                    version = package_url.version
+                    if identifier_counts[purl] > 1:
+                        identifier = python_safe_name('{}_{}_{}'.format(name, version, identifier_counts[purl]))
+                    else:
+                        identifier = python_safe_name('{}_{}'.format(name, version))
                 else:
-                    identifier = python_safe_name('{}_{}'.format(name, version))
+                    # We have to create an identifier if there is no purl
+                    identifier = '{}-{}'.format('consolidated_package', c.package.root_path)
+                    identifier_counts[identifier] += 1
+                    if identifier_counts[identifier] > 1:
+                        identifier = python_safe_name('{}_{}'.format(identifier, identifier_counts[identifier]))
+                    else:
+                        identifier = python_safe_name(identifier)
                 c.consolidation.identifier = identifier
                 for resource in c.consolidation.resources:
                     resource.consolidated_to.append(identifier)
