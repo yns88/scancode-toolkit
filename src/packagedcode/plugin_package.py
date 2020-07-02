@@ -33,12 +33,18 @@ import attr
 import click
 click.disable_unicode_literals_warning = True
 
+from cluecode.copyrights import CopyrightDetector
+from license_expression import Licensing
 from plugincode.scan import ScanPlugin
 from plugincode.scan import scan_impl
 from scancode import CommandLineOption
 from scancode import DOC_GROUP
 from scancode import SCAN_GROUP
+from summarycode import copyright_summary
+from summarycode.plugin_consolidate import process_holders
 
+from packagedcode.build import BaseBuildManifestPackage
+from packagedcode.utils import combine_expressions
 from packagedcode import get_package_class
 from packagedcode import get_package_instance
 from packagedcode import PACKAGE_TYPES
@@ -122,21 +128,79 @@ class PackageScanner(ScanPlugin):
             return
 
         packages_by_purl = {}
-        for resource in codebase.walk(topdown=False):
-            for package in resource.packages:
-                pkg = get_package_instance(package)
-                package_purl = pkg.purl
-                if not package_purl:
-                    continue
-                if package_purl not in packages_by_purl:
-                    packages_by_purl[package_purl] = pkg.to_dict()
+        for package in get_consolidated_packages(codebase):
+            purl = package.get('purl')
+            if purl:
+                if purl not in packages_by_purl:
+                    packages_by_purl[purl] = package
                 else:
-                    # Merge packages here
+                    # TODO: Add package merge here
                     pass
-            set_packages_root(resource, codebase)
         for _, package in packages_by_purl.items():
             codebase.attributes.packages.append(package)
 
+        for resource in codebase.walk(topdown=False):
+            set_packages_root(resource, codebase)
+
+
+def get_consolidated_packages(codebase):
+    """
+    Yield a ConsolidatedPackage for each detected package in the codebase
+    """
+    for resource in codebase.walk(topdown=False):
+        for package_data in resource.packages:
+            package = get_package_instance(package_data)
+            package_root = package.get_package_root(resource, codebase)
+            is_build_file = isinstance(package, BaseBuildManifestPackage)
+            package_resources = list(package.get_package_resources(package_root, codebase))
+            package_license_expression = package.license_expression
+            package_copyright = package.copyright
+
+            package_holders = []
+            if package_copyright:
+                numbered_lines = [(0, package_copyright)]
+                for _, holder, _, _ in CopyrightDetector().detect(numbered_lines,
+                        copyrights=False, holders=True, authors=False, include_years=False):
+                    package_holders.append(holder)
+            package_holders = process_holders(package_holders)
+
+            discovered_license_expressions = []
+            discovered_holders = []
+            for package_resource in package_resources:
+                if not is_build_file:
+                    # If a resource is part of a package Component, then it cannot be part of any other type of Component
+                    package_resource.extra_data['in_package_component'] = True
+                    package_resource.save(codebase)
+                if hasattr(package_resource, 'license_expressions'):
+                    package_resource_license_expression = combine_expressions(package_resource.license_expressions)
+                    if package_resource_license_expression:
+                        discovered_license_expressions.append(package_resource_license_expression)
+                if hasattr(package_resource, 'holders'):
+                    discovered_holders.extend(h.get('value') for h in package_resource.holders)
+            discovered_holders = process_holders(discovered_holders)
+
+            combined_discovered_license_expression = combine_expressions(discovered_license_expressions)
+            if combined_discovered_license_expression:
+                simplified_discovered_license_expression = str(Licensing().parse(combined_discovered_license_expression).simplify())
+            else:
+                simplified_discovered_license_expression = None
+
+            c = OrderedDict(
+                core_license_expression=package_license_expression,
+                # Sort holders by holder key
+                core_holders=[h for h, _ in sorted(copyright_summary.cluster(package_holders), key=lambda t: t[0].key)],
+                other_license_expression=simplified_discovered_license_expression,
+                # Sort holders by holder key
+                other_holders=[h for h, _ in sorted(copyright_summary.cluster(discovered_holders), key=lambda t: t[0].key)],
+                files_count=len([package_resource for package_resource in package_resources if package_resource.is_file]),
+                #resources=package_resources,
+            )
+            c = {**package_data, **c}
+            if is_build_file:
+                c['type'] = 'build'
+                yield c
+            else:
+                yield c
 
 
 def set_packages_root(resource, codebase):
