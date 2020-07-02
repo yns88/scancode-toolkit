@@ -40,6 +40,7 @@ from scancode import DOC_GROUP
 from scancode import SCAN_GROUP
 
 from packagedcode import get_package_class
+from packagedcode import get_package_instance
 from packagedcode import PACKAGE_TYPES
 
 
@@ -70,6 +71,10 @@ class PackageScanner(ScanPlugin):
     Scan a Resource for Package manifests and report these as "packages" at the
     right file or directory level.
     """
+
+    codebase_attributes = OrderedDict(
+        packages=attr.ib(default=attr.Factory(list))
+    )
 
     resource_attributes = OrderedDict()
     resource_attributes['packages'] = attr.ib(default=attr.Factory(list), repr=False)
@@ -109,10 +114,29 @@ class PackageScanner(ScanPlugin):
         """
         if codebase.has_single_resource:
             # What if we scanned a single file and we do not have a root proper?
+            root = codebase.root
+            packages = root.packages
+            if packages:
+                for package in packages:
+                    codebase.attributes.packages.append(package)
             return
 
+        packages_by_purl = {}
         for resource in codebase.walk(topdown=False):
+            for package in resource.packages:
+                pkg = get_package_instance(package)
+                package_purl = pkg.purl
+                if not package_purl:
+                    continue
+                if package_purl not in packages_by_purl:
+                    packages_by_purl[package_purl] = pkg.to_dict()
+                else:
+                    # Merge packages here
+                    pass
             set_packages_root(resource, codebase)
+        for _, package in packages_by_purl.items():
+            codebase.attributes.packages.append(package)
+
 
 
 def set_packages_root(resource, codebase):
