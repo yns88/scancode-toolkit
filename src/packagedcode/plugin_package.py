@@ -84,6 +84,7 @@ class PackageScanner(ScanPlugin):
 
     resource_attributes = OrderedDict()
     resource_attributes['packages'] = attr.ib(default=attr.Factory(list), repr=False)
+    resource_attributes['for_packages'] = attr.ib(default=attr.Factory(list), repr=False)
 
     sort_order = 6
 
@@ -155,6 +156,7 @@ def get_consolidated_packages(codebase):
             package_resources = list(package.get_package_resources(package_root, codebase))
             package_license_expression = package.license_expression
             package_copyright = package.copyright
+            purl = package.purl
 
             package_holders = []
             if package_copyright:
@@ -177,6 +179,9 @@ def get_consolidated_packages(codebase):
                         discovered_license_expressions.append(package_resource_license_expression)
                 if hasattr(package_resource, 'holders'):
                     discovered_holders.extend(h.get('value') for h in package_resource.holders)
+                for_packages = package_resource.for_packages
+                if purl not in for_packages:
+                    for_packages.append(purl)
             discovered_holders = process_holders(discovered_holders)
 
             combined_discovered_license_expression = combine_expressions(discovered_license_expressions)
@@ -193,7 +198,6 @@ def get_consolidated_packages(codebase):
                 # Sort holders by holder key
                 other_holders=[h for h, _ in sorted(copyright_summary.cluster(discovered_holders), key=lambda t: t[0].key)],
                 files_count=len([package_resource for package_resource in package_resources if package_resource.is_file]),
-                #resources=package_resources,
             )
             c = {**package_data, **c}
             if is_build_file:
