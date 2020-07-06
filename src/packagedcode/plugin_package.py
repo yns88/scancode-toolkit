@@ -152,7 +152,6 @@ def get_consolidated_packages(codebase):
         for package_data in resource.packages:
             package = get_package_instance(package_data)
             package_root = package.get_package_root(resource, codebase)
-            is_build_file = isinstance(package, BaseBuildManifestPackage)
             package_resources = list(package.get_package_resources(package_root, codebase))
             package_license_expression = package.license_expression
             package_copyright = package.copyright
@@ -169,10 +168,6 @@ def get_consolidated_packages(codebase):
             discovered_license_expressions = []
             discovered_holders = []
             for package_resource in package_resources:
-                if not is_build_file:
-                    # If a resource is part of a package Component, then it cannot be part of any other type of Component
-                    package_resource.extra_data['in_package_component'] = True
-                    package_resource.save(codebase)
                 if hasattr(package_resource, 'license_expressions'):
                     package_resource_license_expression = combine_expressions(package_resource.license_expressions)
                     if package_resource_license_expression:
@@ -199,12 +194,7 @@ def get_consolidated_packages(codebase):
                 other_holders=[h for h, _ in sorted(copyright_summary.cluster(discovered_holders), key=lambda t: t[0].key)],
                 files_count=len([package_resource for package_resource in package_resources if package_resource.is_file]),
             )
-            c = {**package_data, **c}
-            if is_build_file:
-                c['type'] = 'build'
-                yield c
-            else:
-                yield c
+            yield {**package_data, **c}
 
 
 def set_packages_root(resource, codebase):
